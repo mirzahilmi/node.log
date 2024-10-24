@@ -1,0 +1,21 @@
+---
+services:
+  nodeexporter:
+    image: quay.io/prometheus/node-exporter:v1.8.2
+    container_name: nodeexporter
+    command: [ --path.rootfs=/host ]
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes: [ /:/host:ro,rslave ]
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: prometheus
+    volumes: [ ./prometheus.yaml:/etc/prometheus/prometheus.yml ]
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana-oss:11.3.0-ubuntu
+    container_name: grafana
+    restart: unless-stopped
+    ports: [ 3000:3000 ]
+...
