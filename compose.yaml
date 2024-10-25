@@ -1,21 +1,51 @@
 ---
+version: '3.8'
+
+networks:
+  monitoring:
+    driver: bridge
+
 services:
-  nodeexporter:
-    image: quay.io/prometheus/node-exporter:v1.8.2
-    container_name: nodeexporter
-    command: [ --path.rootfs=/host ]
-    network_mode: host
-    pid: host
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
     restart: unless-stopped
-    volumes: [ /:/host:ro,rslave ]
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    networks:
+      - monitoring
+
   prometheus:
     image: prom/prometheus:v2.55.0
     container_name: prometheus
-    volumes: [ ./prometheus.yaml:/etc/prometheus/prometheus.yml ]
     restart: unless-stopped
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    expose:
+      - 9090
+    networks:
+      - monitoring
+
   grafana:
     image: grafana/grafana-oss:11.3.0-ubuntu
     container_name: grafana
     restart: unless-stopped
     ports: [ 3000:3000 ]
+    networks:
+      - monitoring
 ...
